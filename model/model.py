@@ -458,14 +458,22 @@ class Qwen2VL(nn.Module):
         super().__init__()
         self.config = config
         self.visual = Qwen2VLVisionEncoder(config.vision_config)
-        self.model = Qwen2Model(config)
+        self.model = Qwen2Model(config) 
+        # self.model = self.model.to(torch.bfloat16)
         self.lm_head = None
+        # TODO: call dump_embeddings here
         if not config.tie_word_embeddings:
             self.lm_head = nn.Linear(config.n_embed, config.vocab_size, bias=False)
 
         self.vision_start_token_id = 151652
         self.image_pad_token_id = 151655
         self.video_pad_token_id = -1  # placeholder
+
+    # def dump_embeddings(self, filepath: str):
+    #     """Dump the embedding weights to a binary file."""
+    #     weights = self.model.embed_tokens.weight.detach().cpu().numpy()
+    #     with open(filepath, "wb") as f:
+    #         f.write(weights.tobytes())
 
     def _get_position_ids(
         self,

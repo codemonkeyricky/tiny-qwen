@@ -137,9 +137,7 @@ def parse_user_input(text):
     return [{"role": "user", "content": content}]
 
 
-def generate_local_response(
-    messages, model, processor, model_generation, max_tokens=2048, stream=False
-):
+def generate_local_response(messages, model, processor, model_generation, max_tokens=2048, stream=False):
     """Generate response using local model."""
     # Use processor directly - it now handles both message formats
     inputs = processor(messages)
@@ -212,34 +210,37 @@ def main():
         console.print(yellow_logo)
         console.print(STARTING_HELP_TEXT)
 
-        # Select model generation e.g. Qwen2, Qwen2.5, Qwen2.5-VL, Qwen3, etc.
-        selected_model_generation = questionary.select(
-            message="Select model",
-            choices=[Choice(generation, generation) for generation in ALL_MODELS],
-            pointer=">",
-            qmark="",
-            style=STYLE,
-        ).ask()
+        # # Select model generation e.g. Qwen2, Qwen2.5, Qwen2.5-VL, Qwen3, etc.
+        # selected_model_generation = questionary.select(
+        #     message="Select model",
+        #     choices=[Choice(generation, generation) for generation in ALL_MODELS],
+        #     pointer=">",
+        #     qmark="",
+        #     style=STYLE,
+        # ).ask()
 
-        if not selected_model_generation:
-            return
+        # if not selected_model_generation:
+        #     return
 
-        # Select model variant e.g. Qwen2-0.5B-Instruct, Qwen2.5-1.5B-Instruct, etc.
-        selected_model_variant = questionary.select(
-            message="Select model variant",
-            choices=[
-                Choice(variant, variant)
-                for variant in ALL_MODELS[selected_model_generation]
-            ],
-            pointer=">",
-            qmark="",
-            style=STYLE,
-        ).ask()
+        # # Select model variant e.g. Qwen2-0.5B-Instruct, Qwen2.5-1.5B-Instruct, etc.
+        # selected_model_variant = questionary.select(
+        #     message="Select model variant",
+        #     choices=[
+        #         Choice(variant, variant)
+        #         for variant in ALL_MODELS[selected_model_generation]
+        #     ],
+        #     pointer=">",
+        #     qmark="",
+        #     style=STYLE,
+        # ).ask()
 
-        if not selected_model_variant:
-            return
+        # if not selected_model_variant:
+        #     return
 
-        hf_repo_id = ALL_MODELS[selected_model_generation][selected_model_variant]
+        # hf_repo_id = ALL_MODELS[selected_model_generation][selected_model_variant]
+        hf_repo_id = "Qwen/Qwen2.5-VL-3B-Instruct"
+        selected_model_generation = "Qwen2.5-VL"
+        selected_model_variant = "Qwen2.5-VL-3B-Instruct"
 
         console.print(f"\nLoading model: [bold]{hf_repo_id}[/bold]")
 
@@ -250,6 +251,14 @@ def main():
 
         try:
             model = model_class.from_pretrained(hf_repo_id)
+            # Dump embeddings into a binary file using native format (bfloat16 if available)
+            # embeddings = None
+            # if hasattr(model, "embed_tokens"):
+            embeddings = model.model.embed_tokens.weight.detach().cpu()
+            embeddings_numpy = embeddings.view(torch.int16).numpy()
+            with open("embeddings.bin", "wb") as f:
+                embeddings_numpy.tofile(f)
+
             console.print("Model loaded successfully!")
         except Exception as e:
             console.print(f"Failed to load model: {e}")
@@ -268,12 +277,8 @@ def main():
                 spatial_merge_size=model.config.vision_config.spatial_merge_size,
                 spatial_patch_size=model.config.vision_config.spatial_patch_size,
                 temporal_patch_size=model.config.vision_config.temporal_patch_size,
-                intermediate_size=getattr(
-                    model.config.vision_config, "intermediate_size", None
-                ),
-                hidden_act=getattr(
-                    model.config.vision_config, "hidden_act", "quick_gelu"
-                ),
+                intermediate_size=getattr(model.config.vision_config, "intermediate_size", None),
+                hidden_act=getattr(model.config.vision_config, "hidden_act", "quick_gelu"),
             )
             processor = Processor(repo_id=hf_repo_id, vision_config=vision_config)
         else:
