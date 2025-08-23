@@ -266,14 +266,23 @@ def main():
                 norm_weight.tofile(f)
 
             attn = model.model.layers[0].self_attn
-            with open("layer_0_q_proj.bin", "wb") as f:
-                q = attn.q_proj.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_q_proj_w.bin", "wb") as f:
+                q = attn.q_proj.weight.detach().cpu().T.view(torch.int16).numpy()
                 q.tofile(f)
-            with open("layer_0_k_proj.bin", "wb") as f:
-                k = attn.k_proj.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_q_proj_b.bin", "wb") as f:
+                q = attn.q_proj.bias.detach().cpu().view(torch.int16).numpy()
+                q.tofile(f)
+            with open("layer_0_k_proj_w.bin", "wb") as f:
+                k = attn.k_proj.weight.detach().cpu().T.view(torch.int16).numpy()
                 k.tofile(f)
-            with open("layer_0_v_proj.bin", "wb") as f:
-                v = attn.v_proj.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_k_proj_b.bin", "wb") as f:
+                k = attn.k_proj.bias.detach().cpu().view(torch.int16).numpy()
+                k.tofile(f)
+            with open("layer_0_v_proj_w.bin", "wb") as f:
+                v = attn.v_proj.weight.detach().cpu().T.view(torch.int16).numpy()
+                v.tofile(f)
+            with open("layer_0_v_proj_b.bin", "wb") as f:
+                v = attn.v_proj.bias.detach().cpu().view(torch.int16).numpy()
                 v.tofile(f)
 
             console.print("Model loaded successfully!")

@@ -31,11 +31,7 @@ class RotaryEmbedding(nn.Module):
     def __init__(self, config):
         super().__init__()
         # Use explicit head_dim if provided, otherwise calculate
-        d = (
-            config.head_dim
-            if config.head_dim is not None
-            else (config.n_embed // config.n_heads)
-        )
+        d = config.head_dim if config.head_dim is not None else (config.n_embed // config.n_heads)
         t = config.rope_theta
         r = torch.arange(0, d, 2)
         self.inv_freq = 1.0 / (t ** (r / d)).float()
@@ -74,6 +70,9 @@ class CausalSelfAttention(nn.Module):
 
     def forward(self, x, cos, sin):
         B, T, C = x.size()
+
+        w = torch.matmul(x, self.q_proj.weight.T)
+        wb = w + self.q_proj.bias
 
         q = self.q_proj(x)
         k = self.k_proj(x)
@@ -228,19 +227,11 @@ class Qwen3MoeAttention(nn.Module):
         self.n_embed = config.n_embed
 
         # Use explicit head_dim if provided, otherwise calculate
-        self.head_dim = (
-            config.head_dim
-            if config.head_dim is not None
-            else (config.n_embed // config.n_heads)
-        )
+        self.head_dim = config.head_dim if config.head_dim is not None else (config.n_embed // config.n_heads)
 
         self.q_proj = nn.Linear(self.n_embed, self.n_heads * self.head_dim, bias=False)
-        self.k_proj = nn.Linear(
-            self.n_embed, self.n_kv_heads * self.head_dim, bias=False
-        )
-        self.v_proj = nn.Linear(
-            self.n_embed, self.n_kv_heads * self.head_dim, bias=False
-        )
+        self.k_proj = nn.Linear(self.n_embed, self.n_kv_heads * self.head_dim, bias=False)
+        self.v_proj = nn.Linear(self.n_embed, self.n_kv_heads * self.head_dim, bias=False)
         self.o_proj = nn.Linear(self.n_heads * self.head_dim, self.n_embed, bias=False)
 
         # Qwen3 specific: q_norm and k_norm on head dimension
@@ -340,15 +331,9 @@ class MoEFeedForward(nn.Module):
         self.experts = nn.ModuleList()
         for _ in range(config.num_experts):
             expert = nn.Module()
-            expert.gate_proj = nn.Linear(
-                config.n_embed, config.moe_intermediate_size, bias=False
-            )
-            expert.up_proj = nn.Linear(
-                config.n_embed, config.moe_intermediate_size, bias=False
-            )
-            expert.down_proj = nn.Linear(
-                config.moe_intermediate_size, config.n_embed, bias=False
-            )
+            expert.gate_proj = nn.Linear(config.n_embed, config.moe_intermediate_size, bias=False)
+            expert.up_proj = nn.Linear(config.n_embed, config.moe_intermediate_size, bias=False)
+            expert.down_proj = nn.Linear(config.moe_intermediate_size, config.n_embed, bias=False)
             self.experts.append(expert)
 
     def forward(self, x):
@@ -363,9 +348,7 @@ class MoEFeedForward(nn.Module):
             hidden = F.silu(expert.gate_proj(x)) * expert.up_proj(x)
             out = expert.down_proj(hidden)
             expert_outputs.append(out.unsqueeze(-2))
-        expert_outputs = torch.cat(
-            expert_outputs, dim=-2
-        )  # (b, t, num_experts, emb_dim)
+        expert_outputs = torch.cat(expert_outputs, dim=-2)  # (b, t, num_experts, emb_dim)
 
         gating_probs = torch.zeros_like(scores)
 
@@ -471,7 +454,7 @@ class Qwen2VL(nn.Module):
         super().__init__()
         self.config = config
         self.visual = Qwen2VLVisionEncoder(config.vision_config)
-        self.model = Qwen2Model(config) 
+        self.model = Qwen2Model(config)
         # self.model = self.model.to(torch.bfloat16)
         self.lm_head = None
         # TODO: call dump_embeddings here
@@ -703,9 +686,7 @@ class Qwen3MoeModel(nn.Module):
         self.rotary_emb = RotaryEmbedding(config)
 
         # Use Qwen3MoeBlock with proper attention and MoE
-        self.layers = nn.ModuleList(
-            Qwen3MoeBlock(config) for _ in range(config.n_layer)
-        )
+        self.layers = nn.ModuleList(Qwen3MoeBlock(config) for _ in range(config.n_layer))
         self.norm = RMSNorm(config.n_embed, eps=config.rms_norm_eps)
 
         # Store config for convenience
