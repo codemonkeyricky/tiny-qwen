@@ -259,6 +259,23 @@ def main():
             with open("embeddings.bin", "wb") as f:
                 embeddings_numpy.tofile(f)
 
+            # TODO: dump model.model.layers[0].input_layernorm.weight as torch.int16
+            # Dump model.model.layers[0].input_layernorm.weight as native dtype
+            norm_weight = model.model.layers[0].input_layernorm.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_input_layernorm.bin", "wb") as f:
+                norm_weight.tofile(f)
+
+            attn = model.model.layers[0].self_attn
+            with open("layer_0_q_proj.bin", "wb") as f:
+                q = attn.q_proj.weight.detach().cpu().view(torch.int16).numpy()
+                q.tofile(f)
+            with open("layer_0_k_proj.bin", "wb") as f:
+                k = attn.k_proj.weight.detach().cpu().view(torch.int16).numpy()
+                k.tofile(f)
+            with open("layer_0_v_proj.bin", "wb") as f:
+                v = attn.v_proj.weight.detach().cpu().view(torch.int16).numpy()
+                v.tofile(f)
+
             console.print("Model loaded successfully!")
         except Exception as e:
             console.print(f"Failed to load model: {e}")
