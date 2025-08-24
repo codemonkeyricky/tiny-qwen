@@ -1,4 +1,5 @@
 import time
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -90,6 +91,20 @@ class CausalSelfAttention(nn.Module):
             v = v.repeat_interleave(num_repeat, dim=1)
 
         y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+
+        # 1. Compute attention scores
+        att = q @ k.transpose(-2, -1)  # [B, nh, T, T]
+        # 2. Scale by sqrt of head size
+        scale = 1.0 / (q.size(-1) ** 0.5)
+        att = att * scale
+        T = att.size(-1)
+        mask = torch.tril(torch.ones(T, T, device=att.device)).unsqueeze(0).unsqueeze(0)  # [1, 1, T, T]
+        att = att.masked_fill(mask == 0, float("-inf"))
+        # 5. Softmax over last dimension
+        att = F.softmax(att, dim=-1)
+        # 5. Multiply by values
+        y2 = att @ v  # [B, nh, T, hs]
+
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.o_proj(y)
         return y
@@ -117,6 +132,11 @@ class CausalSelfAttention(nn.Module):
             # shape [B, T, D] -> text-only
             cos = cos.unsqueeze(1)
             sin = sin.unsqueeze(1)
+
+        a = q * cos
+        b = CausalSelfAttention._rotate_half(q)
+        c = b * sin
+        d = a + c
 
         q_embed = (q * cos) + (CausalSelfAttention._rotate_half(q) * sin)
         k_embed = (k * cos) + (CausalSelfAttention._rotate_half(k) * sin)
