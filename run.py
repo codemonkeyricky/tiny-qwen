@@ -284,8 +284,8 @@ def main():
             with open("layer_0_v_proj_b.bin", "wb") as f:
                 v = attn.v_proj.bias.detach().cpu().view(torch.int16).numpy()
                 v.tofile(f)
-            with open("layer_0_o_proj_b.bin", "wb") as f:
-                v = attn.o_proj.bias.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_o_proj_w.bin", "wb") as f:
+                v = attn.o_proj.weight.detach().cpu().view(torch.int16).numpy()
                 v.tofile(f)
 
             console.print("Model loaded successfully!")
