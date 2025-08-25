@@ -265,6 +265,10 @@ def main():
             with open("layer_0_input_layernorm.bin", "wb") as f:
                 norm_weight.tofile(f)
 
+            norm_weight = model.model.layers[0].post_attention_layernorm.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_post_attention_layernorm.bin", "wb") as f:
+                norm_weight.tofile(f)
+
             attn = model.model.layers[0].self_attn
             with open("layer_0_q_proj_w.bin", "wb") as f:
                 q = attn.q_proj.weight.detach().cpu().view(torch.int16).numpy()
