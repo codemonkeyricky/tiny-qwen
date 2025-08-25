@@ -269,6 +269,18 @@ def main():
             with open("layer_0_post_attention_layernorm.bin", "wb") as f:
                 norm_weight.tofile(f)
 
+            gate_proj = model.model.layers[0].mlp.gate_proj.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_mlp_gate_proj.bin", "wb") as f:
+                gate_proj.tofile(f)
+
+            up_proj = model.model.layers[0].mlp.up_proj.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_mlp_up_proj.bin", "wb") as f:
+                up_proj.tofile(f)
+
+            down_proj = model.model.layers[0].mlp.down_proj.weight.detach().cpu().view(torch.int16).numpy()
+            with open("layer_0_mlp_down_proj.bin", "wb") as f:
+                down_proj.tofile(f)
+
             attn = model.model.layers[0].self_attn
             with open("layer_0_q_proj_w.bin", "wb") as f:
                 q = attn.q_proj.weight.detach().cpu().view(torch.int16).numpy()
