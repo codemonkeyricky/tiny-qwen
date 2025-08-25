@@ -251,58 +251,60 @@ def main():
 
         try:
             model = model_class.from_pretrained(hf_repo_id)
-            # Dump embeddings into a binary file using native format (bfloat16 if available)
-            # embeddings = None
-            # if hasattr(model, "embed_tokens"):
+
             embeddings = model.model.embed_tokens.weight.detach().cpu()
             embeddings_numpy = embeddings.view(torch.int16).numpy()
             with open("embeddings.bin", "wb") as f:
                 embeddings_numpy.tofile(f)
 
-            # TODO: dump model.model.layers[0].input_layernorm.weight as torch.int16
-            # Dump model.model.layers[0].input_layernorm.weight as native dtype
-            norm_weight = model.model.layers[0].input_layernorm.weight.detach().cpu().view(torch.int16).numpy()
-            with open("layer_0_input_layernorm.bin", "wb") as f:
-                norm_weight.tofile(f)
+            # Dump weights for all layers
+            for i in range(model.config.n_layer):
+                # input_layernorm
+                norm_weight = model.model.layers[i].input_layernorm.weight.detach().cpu().view(torch.int16).numpy()
+                with open(f"layer_{i}_input_layernorm.bin", "wb") as f:
+                    norm_weight.tofile(f)
 
-            norm_weight = model.model.layers[0].post_attention_layernorm.weight.detach().cpu().view(torch.int16).numpy()
-            with open("layer_0_post_attention_layernorm.bin", "wb") as f:
-                norm_weight.tofile(f)
+                # post_attention_layernorm
+                norm_weight = model.model.layers[i].post_attention_layernorm.weight.detach().cpu().view(torch.int16).numpy()
+                with open(f"layer_{i}_post_attention_layernorm.bin", "wb") as f:
+                    norm_weight.tofile(f)
 
-            gate_proj = model.model.layers[0].mlp.gate_proj.weight.detach().cpu().view(torch.int16).numpy()
-            with open("layer_0_mlp_gate_proj.bin", "wb") as f:
-                gate_proj.tofile(f)
+                # mlp weights
+                gate_proj = model.model.layers[i].mlp.gate_proj.weight.detach().cpu().view(torch.int16).numpy()
+                with open(f"layer_{i}_mlp_gate_proj.bin", "wb") as f:
+                    gate_proj.tofile(f)
 
-            up_proj = model.model.layers[0].mlp.up_proj.weight.detach().cpu().view(torch.int16).numpy()
-            with open("layer_0_mlp_up_proj.bin", "wb") as f:
-                up_proj.tofile(f)
+                up_proj = model.model.layers[i].mlp.up_proj.weight.detach().cpu().view(torch.int16).numpy()
+                with open(f"layer_{i}_mlp_up_proj.bin", "wb") as f:
+                    up_proj.tofile(f)
 
-            down_proj = model.model.layers[0].mlp.down_proj.weight.detach().cpu().view(torch.int16).numpy()
-            with open("layer_0_mlp_down_proj.bin", "wb") as f:
-                down_proj.tofile(f)
+                down_proj = model.model.layers[i].mlp.down_proj.weight.detach().cpu().view(torch.int16).numpy()
+                with open(f"layer_{i}_mlp_down_proj.bin", "wb") as f:
+                    down_proj.tofile(f)
 
-            attn = model.model.layers[0].self_attn
-            with open("layer_0_q_proj_w.bin", "wb") as f:
-                q = attn.q_proj.weight.detach().cpu().view(torch.int16).numpy()
-                q.tofile(f)
-            with open("layer_0_q_proj_b.bin", "wb") as f:
-                q = attn.q_proj.bias.detach().cpu().view(torch.int16).numpy()
-                q.tofile(f)
-            with open("layer_0_k_proj_w.bin", "wb") as f:
-                k = attn.k_proj.weight.detach().cpu().view(torch.int16).numpy()
-                k.tofile(f)
-            with open("layer_0_k_proj_b.bin", "wb") as f:
-                k = attn.k_proj.bias.detach().cpu().view(torch.int16).numpy()
-                k.tofile(f)
-            with open("layer_0_v_proj_w.bin", "wb") as f:
-                v = attn.v_proj.weight.detach().cpu().view(torch.int16).numpy()
-                v.tofile(f)
-            with open("layer_0_v_proj_b.bin", "wb") as f:
-                v = attn.v_proj.bias.detach().cpu().view(torch.int16).numpy()
-                v.tofile(f)
-            with open("layer_0_o_proj_w.bin", "wb") as f:
-                v = attn.o_proj.weight.detach().cpu().view(torch.int16).numpy()
-                v.tofile(f)
+                # self_attn weights and biases
+                attn = model.model.layers[i].self_attn
+                with open(f"layer_{i}_q_proj_w.bin", "wb") as f:
+                    q = attn.q_proj.weight.detach().cpu().view(torch.int16).numpy()
+                    q.tofile(f)
+                with open(f"layer_{i}_q_proj_b.bin", "wb") as f:
+                    q = attn.q_proj.bias.detach().cpu().view(torch.int16).numpy()
+                    q.tofile(f)
+                with open(f"layer_{i}_k_proj_w.bin", "wb") as f:
+                    k = attn.k_proj.weight.detach().cpu().view(torch.int16).numpy()
+                    k.tofile(f)
+                with open(f"layer_{i}_k_proj_b.bin", "wb") as f:
+                    k = attn.k_proj.bias.detach().cpu().view(torch.int16).numpy()
+                    k.tofile(f)
+                with open(f"layer_{i}_v_proj_w.bin", "wb") as f:
+                    v = attn.v_proj.weight.detach().cpu().view(torch.int16).numpy()
+                    v.tofile(f)
+                with open(f"layer_{i}_v_proj_b.bin", "wb") as f:
+                    v = attn.v_proj.bias.detach().cpu().view(torch.int16).numpy()
+                    v.tofile(f)
+                with open(f"layer_{i}_o_proj_w.bin", "wb") as f:
+                    o = attn.o_proj.weight.detach().cpu().view(torch.int16).numpy()
+                    o.tofile(f)
 
             console.print("Model loaded successfully!")
         except Exception as e:
